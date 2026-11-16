@@ -1,0 +1,13 @@
+equipment_id,equipment_type,description,site_id,site_name,criticality
+P-101,PUMP,Crude transfer pump,GC-01,Gathering Centre 01,A
+P-102,PUMP,Crude transfer pump,GC-01,Gathering Centre 01,B
+P-103,PUMP,Water injection pump,GC-01,Gathering Centre 01,B
+P-104,PUMP,Produced water pump,GC-01,Gathering Centre 01,C
+K-201,COMPRESSOR,Gas lift compressor,GC-01,Gathering Centre 01,A
+P-105,PUMP,Crude transfer pump,GC-02,Gathering Centre 02,A
+P-106,PUMP,Water injection pump,GC-02,Gathering Centre 02,B
+K-202,COMPRESSOR,Gas lift compressor,GC-02,Gathering Centre 02,A
+P-107,PUMP,Crude booster pump,BS-01,Booster Station 01,B
+P-108,PUMP,Crude booster pump,BS-01,Booster Station 01,C
+K-203,COMPRESSOR,Gas booster compressor,BS-01,Booster Station 01,A
+K-204,COMPRESSOR,Gas booster compressor,BS-01,Booster Station 01,B

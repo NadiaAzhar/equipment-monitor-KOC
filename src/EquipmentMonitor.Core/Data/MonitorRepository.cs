@@ -20,8 +20,18 @@ public sealed record AlertRow(
 public sealed record AlertQuery(string? SiteId = null, string? EquipmentId = null, string? RuleId = null, string? Sensor = null,
     int Limit = 50, int Offset = 0);
 
+/// <summary>One time bucket of a sensor's readings. Value, Min and Max come from GOOD readings only, in the sensor's limit unit.</summary>
+public sealed record ReadingPoint(
+    DateTimeOffset Timestamp, string Sensor, string Unit, double? Value, double? Min, double? Max, int GoodCount, int BadCount);
+
+public sealed record ReadingQuery(string EquipmentId, string? Sensor = null, DateTimeOffset? From = null, DateTimeOffset? To = null,
+    int BucketMinutes = 1, int Limit = 1500, int Offset = 0);
+
+/// <summary>Alerts per equipment per local hour, split by severity. Hours with no alerts are omitted.</summary>
+public sealed record AlertHourCount(string EquipmentId, string SiteId, DateTimeOffset Hour, int AlarmCount, int WarningCount);
+
 /// <summary>Read-only queries over the database. Times are returned in the configured local offset.</summary>
-public sealed class MonitorRepository(string databasePath, TimeSpan localOffset)
+public sealed class MonitorRepository(string databasePath, TimeSpan localOffset, UnitConverter? converter = null)
 {
     private SqliteConnection Open()
     {
@@ -104,6 +114,47 @@ public sealed class MonitorRepository(string databasePath, TimeSpan localOffset)
                 RuleIds.All.ToDictionary(id => id, id => counts.Where(c => c.Sensor == s.Sensor && c.Rule == id).Sum(c => c.Count)),
                 bad.GetValueOrDefault(s.Sensor)))
             .ToList();
+    }
+
+    public (IReadOnlyList<ReadingPoint> Items, int Total) Readings(ReadingQuery q)
+    {
+        using var conn = Open();
+        var units = Query(conn, "SELECT sensor, unit FROM sensor_limits WHERE equipment_id = $id AND ($sensor IS NULL OR sensor = $sensor)",
+            r => (Sensor: r.GetString(0), Unit: r.GetString(1)), ("$id", q.EquipmentId), ("$sensor", q.Sensor)).ToDictionary(x => x.Sensor, x => x.Unit);
+        var format = (DateTimeOffset? t) => t?.ToUniversalTime().ToString(MonitorDatabase.TimestampFormat, CultureInfo.InvariantCulture);
+        var rows = Query(conn,
+            "SELECT sensor, timestamp, value, unit, quality FROM readings WHERE equipment_id = $id AND ($sensor IS NULL OR sensor = $sensor) " +
+            "AND ($from IS NULL OR timestamp >= $from) AND ($to IS NULL OR timestamp < $to) ORDER BY sensor, timestamp",
+            r => (Sensor: r.GetString(0), At: Local(r.GetString(1)), Value: r.GetDouble(2), Unit: r.GetString(3), Good: r.GetString(4) == "GOOD"),
+            ("$id", q.EquipmentId), ("$sensor", q.Sensor), ("$from", format(q.From)), ("$to", format(q.To)));
+
+        var bucket = TimeSpan.FromMinutes(q.BucketMinutes);
+        var points = rows
+            .GroupBy(r => (r.Sensor, Start: r.At.UtcTicks - r.At.UtcTicks % bucket.Ticks))
+            .OrderBy(g => g.Key.Sensor, StringComparer.Ordinal).ThenBy(g => g.Key.Start)
+            .Select(g =>
+            {
+                var unit = units[g.Key.Sensor];
+                var good = g.Where(r => r.Good)
+                    .Select(r => converter is not null && converter.TryConvert(r.Value, r.Unit, unit, out var v) ? v : r.Value).ToList();
+                return new ReadingPoint(new DateTimeOffset(g.Key.Start, TimeSpan.Zero).ToOffset(localOffset), g.Key.Sensor, unit,
+                    good.Count > 0 ? good.Average() : null, good.Count > 0 ? good.Min() : null, good.Count > 0 ? good.Max() : null,
+                    good.Count, g.Count() - good.Count);
+            })
+            .ToList();
+        return (points.Skip(q.Offset).Take(q.Limit).ToList(), points.Count);
+    }
+
+    public IReadOnlyList<AlertHourCount> AlertsByHour(string? siteId = null)
+    {
+        using var conn = Open();
+        return Query(conn,
+            "SELECT a.equipment_id, e.site_id, substr(a.timestamp, 1, 13) AS hour, " +
+            "SUM(a.severity = 'ALARM'), SUM(a.severity <> 'ALARM') " +
+            "FROM alerts a JOIN equipment e ON e.equipment_id = a.equipment_id WHERE $site IS NULL OR e.site_id = $site " +
+            "GROUP BY a.equipment_id, e.site_id, hour ORDER BY hour, a.equipment_id",
+            r => new AlertHourCount(r.GetString(0), r.GetString(1), Local(r.GetString(2) + ":00:00Z"), r.GetInt32(3), r.GetInt32(4)),
+            ("$site", siteId));
     }
 
     public (IReadOnlyList<AlertRow> Items, int Total) Alerts(AlertQuery q)

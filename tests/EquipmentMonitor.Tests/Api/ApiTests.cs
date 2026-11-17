@@ -170,6 +170,113 @@ public class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Readings_PsiSensor_AreConvertedToTheLimitUnit()
+    {
+        var (status, body) = await Get("/api/equipment/K-203/readings?sensor=PRESSURE&limit=5000");
+        Assert.Equal(HttpStatusCode.OK, status);
+        AssertPage(body);
+        var items = body.GetProperty("items").EnumerateArray().ToList();
+        Assert.All(items, p => Assert.Equal("bar", p.GetProperty("unit").GetString()));
+        var (_, detail) = await Get("/api/equipment/K-203");
+        var alarm = detail.GetProperty("sensors").EnumerateArray().First(s => s.GetProperty("sensor").GetString() == "PRESSURE").GetProperty("alarm_high").GetDouble();
+        Assert.True(items.Max(p => p.GetProperty("max").GetDouble()) < alarm * 3, "psi values would be about 14.5 times larger if unconverted");
+    }
+
+    [Fact]
+    public async Task Readings_BadReadings_AreCountedButNeverPlotted()
+    {
+        var (_, equipment) = await Get("/api/equipment");
+        var id = equipment.GetProperty("items").EnumerateArray().First(e => e.GetProperty("bad_reading_count").GetInt32() > 0).GetProperty("equipment_id").GetString();
+        var (_, body) = await Get($"/api/equipment/{id}/readings?limit=5000");
+        var items = body.GetProperty("items").EnumerateArray().ToList();
+        Assert.Contains(items, p => p.GetProperty("bad_count").GetInt32() > 0);
+        Assert.DoesNotContain(items, p => p.GetProperty("max").ValueKind == JsonValueKind.Number && p.GetProperty("max").GetDouble() >= 999);
+    }
+
+    [Fact]
+    public async Task Readings_Buckets_AreOrderedUniqueKuwaitTimeAndGapsAreNotFilled()
+    {
+        var totals = new List<int>();
+        foreach (var sensor in new[] { "VIBRATION", "TEMPERATURE", "PRESSURE" })
+        {
+            var (_, body) = await Get($"/api/equipment/P-101/readings?sensor={sensor}&limit=5000");
+            var times = body.GetProperty("items").EnumerateArray().Select(p => p.GetProperty("timestamp").GetString()!).ToList();
+            Assert.All(times, t => Assert.EndsWith("+03:00", t));
+            Assert.Equal(times.Distinct().Count(), times.Count);
+            Assert.Equal(times.Order(StringComparer.Ordinal), times);
+            totals.Add(body.GetProperty("total").GetInt32());
+        }
+        Assert.All(totals, t => Assert.InRange(t, 1, 1440));
+    }
+
+    [Fact]
+    public async Task Readings_BucketMinutes_AggregatesWithMinAndMax()
+    {
+        var (_, body) = await Get("/api/equipment/P-101/readings?sensor=VIBRATION&bucket_minutes=60&limit=100");
+        var items = body.GetProperty("items").EnumerateArray().ToList();
+        Assert.InRange(items.Count, 1, 25);
+        Assert.All(items.Where(p => p.GetProperty("good_count").GetInt32() > 0), p =>
+        {
+            Assert.True(p.GetProperty("min").GetDouble() <= p.GetProperty("value").GetDouble());
+            Assert.True(p.GetProperty("value").GetDouble() <= p.GetProperty("max").GetDouble());
+        });
+    }
+
+    [Fact]
+    public async Task Readings_TimeRange_LimitsTheBuckets()
+    {
+        var (_, body) = await Get("/api/equipment/P-101/readings?sensor=VIBRATION&from=2026-10-14T06:00:00%2B03:00&to=2026-10-14T07:00:00%2B03:00");
+        var items = body.GetProperty("items").EnumerateArray().ToList();
+        Assert.InRange(items.Count, 1, 60);
+        Assert.All(items, p => Assert.StartsWith("2026-10-14T06:", p.GetProperty("timestamp").GetString()));
+    }
+
+    [Fact]
+    public async Task Readings_UnknownEquipment_Returns404()
+    {
+        var (status, body) = await Get("/api/equipment/NOPE/readings");
+        Assert.Equal(HttpStatusCode.NotFound, status);
+        AssertError(body, "EQUIPMENT_NOT_FOUND");
+    }
+
+    [Theory]
+    [InlineData("sensor=FLOW")]
+    [InlineData("bucket_minutes=0")]
+    [InlineData("bucket_minutes=121")]
+    [InlineData("limit=5001")]
+    [InlineData("from=yesterday")]
+    [InlineData("from=2026-10-14T08:00:00%2B03:00&to=2026-10-14T07:00:00%2B03:00")]
+    public async Task Readings_InvalidQuery_Returns400WithDetails(string query)
+    {
+        var (status, body) = await Get($"/api/equipment/P-101/readings?{query}");
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        AssertError(body, "VALIDATION_FAILED");
+        Assert.True(body.GetProperty("error").GetProperty("details").GetArrayLength() > 0);
+    }
+
+    [Fact]
+    public async Task AlertsSummary_HourlyCountsAddUpToAlertTotals()
+    {
+        var (status, summary) = await Get("/api/alerts/summary");
+        Assert.Equal(HttpStatusCode.OK, status);
+        AssertPage(summary);
+        var items = summary.GetProperty("items").EnumerateArray().ToList();
+        Assert.All(items, i => Assert.EndsWith(":00:00+03:00", i.GetProperty("hour").GetString()));
+        var (_, all) = await Get("/api/alerts?limit=1");
+        Assert.Equal(all.GetProperty("total").GetInt32(), items.Sum(i => i.GetProperty("alarm_count").GetInt32() + i.GetProperty("warning_count").GetInt32()));
+    }
+
+    [Fact]
+    public async Task AlertsSummary_FilteredBySite_AndUnknownSite()
+    {
+        var (_, body) = await Get("/api/alerts/summary?site_id=GC-01");
+        Assert.All(body.GetProperty("items").EnumerateArray(), i => Assert.Equal("GC-01", i.GetProperty("site_id").GetString()));
+        var (status, error) = await Get("/api/alerts/summary?site_id=NOPE");
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        AssertError(error, "VALIDATION_FAILED");
+    }
+
+    [Fact]
     public async Task Dashboard_IsServed()
     {
         var res = await _client.GetAsync("/");

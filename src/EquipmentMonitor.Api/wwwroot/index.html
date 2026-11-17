@@ -14,14 +14,27 @@
       <select id="site"><option value="">All sites</option></select>
     </label>
   </header>
+  <section id="overview" class="overview" aria-label="Fleet overview">
+    <div class="panel"><h2>Status</h2><div id="donut" class="donut-wrap"></div></div>
+    <div class="panel"><h2>Alerts per hour</h2><div id="hour-bars"></div>
+      <p class="legend"><i class="sw alarm"></i>Alarm <i class="sw warning"></i>Warning</p></div>
+    <div class="panel wide"><h2>When and where <small>alerts by machine and hour (click a machine)</small></h2><div id="heatmap" class="heatmap-wrap"></div>
+      <p class="legend"><i class="sw alarm"></i>Alarm <i class="sw warning"></i>Warning <i class="sw none"></i>None</p></div>
+    <div class="panel"><h2>Data quality</h2><dl id="quality" class="quality"></dl></div>
+  </section>
   <main>
     <section>
       <div id="summary" class="summary"></div>
+      <label class="sort">Sort by
+        <select id="sort"><option value="status">Status</option><option value="criticality">Criticality</option><option value="alerts">Most alerts</option><option value="id">Equipment ID</option></select>
+      </label>
       <div id="cards" class="cards" aria-live="polite"></div>
     </section>
     <section id="detail" hidden>
       <h2 id="detail-title"></h2>
       <table id="limits"></table>
+      <h3>Trends <small>24h, Kuwait time. Line = average, band = min–max, dots = alerts, purple ticks = BAD readings</small></h3>
+      <div id="trends" class="trends"></div>
       <div class="filters">
         <label>Rule <select id="rule"><option value="">All rules</option></select></label>
         <label>Sensor <select id="sensor"><option value="">All sensors</option></select></label>
@@ -35,6 +48,6 @@
     </section>
   </main>
   <p id="error" class="error" hidden></p>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

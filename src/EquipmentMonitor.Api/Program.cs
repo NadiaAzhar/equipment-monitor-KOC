@@ -14,7 +14,7 @@ var dataDir = Path.GetFullPath(Path.Combine(root, options.DataDirectory));
 var dbPath = Path.GetFullPath(Path.Combine(root, options.DatabasePath));
 
 var report = MonitorDatabase.Rebuild(dbPath, dataDir, options.Rules);
-builder.Services.AddSingleton(new MonitorRepository(dbPath, options.LocalUtcOffset));
+builder.Services.AddSingleton(new MonitorRepository(dbPath, options.LocalUtcOffset, new UnitConverter(options.Rules.UnitConversions)));
 builder.Services.AddSingleton(report);
 
 var app = builder.Build();
@@ -60,6 +60,25 @@ api.MapGet("/equipment/{equipment_id}/alerts", (string equipment_id, HttpRequest
     if (problems.Count > 0) return ApiError.BadRequest(problems);
     var (items, total) = repo.Alerts(q);
     return Results.Ok(Page.Of(items, total, q.Limit, q.Offset));
+});
+
+api.MapGet("/equipment/{equipment_id}/readings", (string equipment_id, HttpRequest req, MonitorRepository repo) =>
+{
+    if (repo.EquipmentById(equipment_id) is null) return ApiError.NotFound(equipment_id);
+    var problems = new List<ApiError.Detail>();
+    var q = Query.Readings(req, repo, equipment_id, problems);
+    if (problems.Count > 0) return ApiError.BadRequest(problems);
+    var (items, total) = repo.Readings(q);
+    return Results.Ok(Page.Of(items, total, q.Limit, q.Offset));
+});
+
+api.MapGet("/alerts/summary", (HttpRequest req, MonitorRepository repo) =>
+{
+    var problems = new List<ApiError.Detail>();
+    var siteId = Query.Site(req, repo, problems);
+    if (problems.Count > 0) return ApiError.BadRequest(problems);
+    var items = repo.AlertsByHour(siteId);
+    return Results.Ok(Page.Of(items, items.Count, items.Count, 0));
 });
 
 api.MapGet("/alerts", (HttpRequest req, MonitorRepository repo) =>
@@ -129,6 +148,30 @@ internal static class Query
         var limit = Int(req, "limit", DefaultLimit, 1, MaxLimit, problems);
         var offset = Int(req, "offset", 0, 0, int.MaxValue, problems);
         return new AlertQuery(RuleId: rule, Sensor: sensor, Limit: limit, Offset: offset);
+    }
+
+    public static ReadingQuery Readings(HttpRequest req, MonitorRepository repo, string equipmentId, List<ApiError.Detail> problems)
+    {
+        var sensor = Get(req, "sensor");
+        if (sensor is not null && !repo.Sensors().Contains(sensor))
+            problems.Add(new("sensor", $"Must be one of {string.Join(", ", repo.Sensors())}.", sensor));
+        var from = Time(req, "from", problems);
+        var to = Time(req, "to", problems);
+        if (from is not null && to is not null && from >= to) problems.Add(new("to", "Must be after 'from'.", Get(req, "to")));
+        var bucket = Int(req, "bucket_minutes", 1, 1, 120, problems);
+        var limit = Int(req, "limit", 1500, 1, 5000, problems);
+        var offset = Int(req, "offset", 0, 0, int.MaxValue, problems);
+        return new ReadingQuery(equipmentId, sensor, from, to, bucket, limit, offset);
+    }
+
+    private static DateTimeOffset? Time(HttpRequest req, string name, List<ApiError.Detail> problems)
+    {
+        var raw = Get(req, name);
+        if (raw is null) return null;
+        if (DateTimeOffset.TryParse(raw.Replace(' ', '+'), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal, out var t)) return t;
+        problems.Add(new(name, "Must be an ISO 8601 date and time, for example 2026-10-14T06:00:00+03:00.", raw));
+        return null;
     }
 
     private static int Int(HttpRequest req, string name, int fallback, int min, int max, List<ApiError.Detail> problems)

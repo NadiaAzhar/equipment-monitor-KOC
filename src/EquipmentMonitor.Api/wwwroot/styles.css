@@ -1,0 +1,29 @@
+:root { --alarm: #c62828; --warning: #b26a00; --normal: #2e7d32; --bg: #f5f6f8; --line: #d9dce1; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: #1f2328; }
+header { display: flex; gap: 1.5rem; align-items: baseline; flex-wrap: wrap; padding: 1rem 1.5rem; background: #1f2328; color: #fff; }
+header h1 { margin: 0; font-size: 1.3rem; }
+.sub { margin: 0; opacity: .75; }
+header label { margin-left: auto; }
+main { display: grid; grid-template-columns: minmax(320px, 1fr) 2fr; gap: 1.5rem; padding: 1.5rem; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+.summary { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.pill { padding: .2rem .6rem; border-radius: 999px; color: #fff; font-weight: 600; font-size: .8rem; }
+.ALARM { background: var(--alarm); } .WARNING { background: var(--warning); } .NORMAL { background: var(--normal); }
+.cards { display: grid; gap: .6rem; }
+.card { background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--normal); border-radius: 6px; padding: .7rem .9rem; cursor: pointer; text-align: left; font: inherit; width: 100%; }
+.card.ALARM-border { border-left-color: var(--alarm); } .card.WARNING-border { border-left-color: var(--warning); }
+.card[aria-pressed="true"] { outline: 2px solid #0969da; }
+.card .top { display: flex; justify-content: space-between; align-items: center; }
+.card .meta { color: #57606a; font-size: .85rem; }
+.counts { display: flex; gap: .8rem; font-size: .8rem; margin-top: .3rem; color: #57606a; }
+.bad { color: #8250df; font-weight: 600; }
+#detail { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 1rem; overflow-x: auto; }
+#detail h2 { margin-top: 0; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+th, td { border-bottom: 1px solid var(--line); padding: .35rem .5rem; text-align: left; vertical-align: top; }
+th { background: #f0f2f4; font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.filters { display: flex; gap: 1rem; align-items: center; margin-bottom: .5rem; }
+.pager { display: flex; gap: 1rem; align-items: center; }
+.error { position: fixed; bottom: 1rem; left: 1rem; background: var(--alarm); color: #fff; padding: .6rem 1rem; border-radius: 6px; }

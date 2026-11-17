@@ -1,0 +1,15 @@
+instructions: |
+  Follow .github/copilot-instructions.md. The API serves the dashboard at http://localhost:5120 and rebuilds equipment.db from data/*.csv on startup.
+
+scripts:
+  - name: Setup
+    command: dotnet restore
+    triggers:
+      - session.create
+  - name: Run
+    command: cd src/EquipmentMonitor.Api && dotnet run --launch-profile http
+  - name: Test
+    command: dotnet test
+
+server_ready_pattern: 'Now listening on:\s+(https?://\S+)'
+auto_open_in_browser: true

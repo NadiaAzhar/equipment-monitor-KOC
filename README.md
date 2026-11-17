@@ -228,15 +228,23 @@ The rubric awards 100 points across the lifecycle. It's the same for every chall
 
 ### Run it
 
+Needs the .NET 10 SDK. On startup the API rebuilds `equipment.db` from `data/*.csv` and serves the dashboard at http://localhost:5120.
+
 ```bash
-# Replace with the exact steps to install and run your app.
+cd src/EquipmentMonitor.Api
+dotnet run --launch-profile http
 ```
+
+- **VS Code:** press F5 (**Equipment Monitor (API + dashboard)**), which builds the app and opens the dashboard. You can also run the `run` task from **Terminal > Run Task**. Install the recommended C# Dev Kit extension when prompted.
+- **GitHub Copilot app:** accept the repository configuration (`.github/github-app.yml`), then use the **Run** script. The dashboard opens in the built-in browser.
 
 ### Test it
 
 ```bash
-# Replace with the exact command that runs your tests.
+dotnet test
 ```
+
+In VS Code, use **Terminal > Run Task > test** or the Testing panel. In the GitHub Copilot app, use the **Test** script.
 
 ### Rule-to-test traceability
 

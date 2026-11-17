@@ -7,7 +7,7 @@ scripts:
     triggers:
       - session.create
   - name: Run
-    command: cd src/EquipmentMonitor.Api && dotnet run --launch-profile http
+    command: '& "C:\Program Files\dotnet\dotnet.exe" run --project src/EquipmentMonitor.Api --launch-profile http'
   - name: Test
     command: dotnet test
 

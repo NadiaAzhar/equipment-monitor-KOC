@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equipment Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Equipment Monitor</h1>
+    <p class="sub">14 October 2026 · times in Kuwait (UTC+03:00)</p>
+    <label>Site
+      <select id="site"><option value="">All sites</option></select>
+    </label>
+  </header>
+  <main>
+    <section>
+      <div id="summary" class="summary"></div>
+      <div id="cards" class="cards" aria-live="polite"></div>
+    </section>
+    <section id="detail" hidden>
+      <h2 id="detail-title"></h2>
+      <table id="limits"></table>
+      <div class="filters">
+        <label>Rule <select id="rule"><option value="">All rules</option></select></label>
+        <label>Sensor <select id="sensor"><option value="">All sensors</option></select></label>
+        <span id="alert-total"></span>
+      </div>
+      <table id="alerts">
+        <thead><tr><th>Time (UTC+3)</th><th>Rule</th><th>Sensor</th><th>Reading vs limit</th><th>Message</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="pager"><button id="prev">Previous</button><span id="page"></span><button id="next">Next</button></div>
+    </section>
+  </main>
+  <p id="error" class="error" hidden></p>
+  <script src="app.js"></script>
+</body>
+</html>

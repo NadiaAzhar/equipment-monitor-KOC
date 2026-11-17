@@ -20,3 +20,8 @@ target/
 .DS_Store
 Thumbs.db
 .idea/
+
+# Local database
+*.db
+*.db-shm
+*.db-wal

@@ -8,12 +8,12 @@ Complete the budget before you start building, and explain each model choice. Th
 
 | Phase | Copilot feature | Model choice and why | Budget (AI Credits) | Actual at mid-point | Actual at end |
 |---|---|---|---:|---:|---:|
-| Plan | Plan mode / Ask | | | | |
-| Scaffold | Agent mode + instructions file | | | | |
-| Build features | Agent / Edit mode | | | | |
-| Tests + review | Skill for tests, chat review | | | | |
-| Docs + demo | Ask, README generation | | | | |
-| **Total** | | | | | |
+| Plan | Plan mode / Ask | Frontier (Claude Opus): rule semantics, edge cases and status precedence are where a wrong call costs most later | 150 | | |
+| Scaffold | Agent mode + instructions file | Low-cost: `dotnet new` projects and references are boilerplate | 80 | | |
+| Build features | Agent / Edit mode | Mixed: frontier for the rules engine and rolling window; low-cost for import, endpoints and dashboard | 500 | | |
+| Tests + review | Skill for tests, chat review | Low-cost with the `edge-case-tests` skill for test writing; one frontier Reviewer pass | 170 | | |
+| Docs + demo | Ask, README generation | Low-cost: summarising existing work | 50 | | |
+| **Total** | | | **950** | | |
 
 **Variance at the end** = (actual − budget) ÷ budget = ____ %
 

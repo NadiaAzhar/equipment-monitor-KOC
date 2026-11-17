@@ -16,7 +16,7 @@ public sealed class RuleOptions
 {
     public int RollingWindowMinutes { get; set; } = 15;
     public int RollingMinGoodReadings { get; set; } = 10;
-    public List<UnitConversion> UnitConversions { get; set; } = [new() { From = "psi", To = "bar", FromPerTo = 14.5038 }];
+    public List<UnitConversion> UnitConversions { get; set; } = [];
 }
 
 /// <summary>1 <see cref="To"/> = <see cref="FromPerTo"/> <see cref="From"/>; for example 1 bar = 14.5038 psi.</summary>

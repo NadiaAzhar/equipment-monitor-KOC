@@ -1,0 +1,22 @@
+{
+  "unit": "AI Credits",
+  "budget_total": 950,
+  "note": "Measured from the Copilot session usage log (AI units). Phases with actual null are not recorded yet: enter trainer readings.",
+  "phases": [
+    { "name": "Plan", "model_tier": "Frontier", "budget": 150, "actual": null },
+    { "name": "Scaffold", "model_tier": "Low-cost", "budget": 80, "actual": null },
+    { "name": "Build features", "model_tier": "Mixed", "budget": 500, "actual": null },
+    { "name": "Tests + review", "model_tier": "Low-cost", "budget": 170, "actual": 6.8 },
+    { "name": "Docs + demo", "model_tier": "Low-cost", "budget": 50, "actual": 78.03 }
+  ],
+  "models": [
+    { "name": "Claude Sonnet 5.5", "calls": 19, "units": 84.83, "input_tokens": 1611520, "output_tokens": 5622, "cache_read_tokens": 1348641, "cache_write_tokens": 262831 }
+  ],
+  "prompts": [
+    { "label": "Project brief and status", "calls": 3, "units": 22.94 },
+    { "label": "Fix && in Run script", "calls": 4, "units": 24.01 },
+    { "label": "Use full dotnet path", "calls": 3, "units": 3.66 },
+    { "label": "Fix NuGet restore", "calls": 5, "units": 6.8 },
+    { "label": "Credit usage report", "calls": 4, "units": 27.42 }
+  ]
+}

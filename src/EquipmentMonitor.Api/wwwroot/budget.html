@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Credit Budget · Equipment Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    header a { color: #fff; margin-left: auto; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 1rem; }
+    .panel h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+    .kpi { background: #fff; border: 1px solid var(--line); border-left: 6px solid #0969da; border-radius: 6px; padding: .7rem .9rem; }
+    .kpi.used { border-left-color: var(--warning); } .kpi.left { border-left-color: var(--normal); }
+    .kpi .v { font-size: 1.6rem; font-weight: 700; }
+    .kpi .l { color: #57606a; font-size: .85rem; }
+    .bar { height: 8px; background: #e6e8eb; border-radius: 999px; overflow: hidden; margin-top: .3rem; }
+    .bar > i { display: block; height: 100%; background: #0969da; }
+    .bar.over > i { background: var(--alarm); }
+    .row { margin-bottom: .9rem; }
+    .row .top { display: flex; justify-content: space-between; gap: .5rem; }
+    .row small { color: #57606a; }
+    .tag { font-size: .75rem; padding: .05rem .5rem; border-radius: 999px; background: #f0f2f4; color: #57606a; margin-left: .4rem; }
+    .stack { display: grid; gap: 1.5rem; align-content: start; }
+    .donut { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .legend div { display: flex; gap: .5rem; align-items: center; font-size: .85rem; margin: .2rem 0; }
+    .legend b { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+    .muted { color: #57606a; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Credit Budget</h1>
+    <p class="sub">Budget, usage and models for Equipment Monitor</p>
+    <a href="/">&larr; Equipment dashboard</a>
+  </header>
+  <main>
+    <section>
+      <div class="kpis" id="kpis" style="grid-template-columns:1fr"></div>
+      <div class="panel"><h2>Model used</h2><div id="models"></div></div>
+    </section>
+    <section class="stack">
+      <div class="panel"><h2>Budget by phase</h2><div id="phases"></div></div>
+      <div class="panel"><h2>Usage by prompt</h2><div id="prompts"></div></div>
+      <p class="muted" id="note"></p>
+    </section>
+  </main>
+
+  <script>
+    const fmt = n => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+    const el = id => document.getElementById(id);
+    const colors = ['#0969da', '#2e7d32', '#b26a00', '#8250df', '#c62828'];
+    const bar = (pct, over) => `<div class="bar ${over ? 'over' : ''}"><i style="width:${Math.min(pct, 100)}%"></i></div>`;
+
+    function donut(items) {
+      const total = items.reduce((s, i) => s + i.value, 0) || 1;
+      let acc = 0;
+      const stops = items.map((i, k) => {
+        const from = acc / total * 360; acc += i.value;
+        return `${colors[k % colors.length]} ${from}deg ${acc / total * 360}deg`;
+      }).join(',');
+      return `<div class="donut">
+        <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(${stops});display:grid;place-items:center">
+          <div style="width:78px;height:78px;border-radius:50%;background:#fff;display:grid;place-items:center;text-align:center;font-weight:700">${fmt(total)}<br><small class="muted">units</small></div>
+        </div>
+        <div class="legend">${items.map((i, k) => `<div><b style="background:${colors[k % colors.length]}"></b>${i.label} · ${fmt(i.value)} (${Math.round(i.value / total * 100)}%)</div>`).join('')}</div>
+      </div>`;
+    }
+
+    fetch('budget-data.json').then(r => r.json()).then(d => {
+      const used = d.phases.reduce((s, p) => s + (p.actual || 0), 0);
+      const pct = used / d.budget_total * 100;
+      const input = d.models.reduce((s, m) => s + m.input_tokens, 0);
+      const cached = d.models.reduce((s, m) => s + m.cache_read_tokens, 0);
+      const calls = d.models.reduce((s, m) => s + m.calls, 0);
+
+      el('kpis').innerHTML = [
+        ['', 'Total budget', fmt(d.budget_total) + ' ' + d.unit],
+        ['used', 'Used so far', `${fmt(used)} (${pct.toFixed(1)}%)${bar(pct, pct > 100)}`],
+        ['left', 'Remaining', fmt(d.budget_total - used)],
+        ['', 'Model calls', `${calls} · ${Math.round(cached / input * 100)}% input cached`]
+      ].map(([c, l, v]) => `<div class="kpi ${c}"><div class="l">${l}</div><div class="v" style="font-size:1.2rem">${v}</div></div>`).join('');
+
+      el('phases').innerHTML = d.phases.map(p => {
+        if (p.actual == null) return `<div class="row"><div class="top"><span>${p.name}<span class="tag">${p.model_tier}</span></span><small>not recorded · budget ${fmt(p.budget)}</small></div>${bar(0)}</div>`;
+        const r = p.actual / p.budget * 100;
+        return `<div class="row"><div class="top"><span>${p.name}<span class="tag">${p.model_tier}</span></span><small>${fmt(p.actual)} / ${fmt(p.budget)} (${Math.round(r)}%)</small></div>${bar(r, r > 100)}</div>`;
+      }).join('');
+
+      el('models').innerHTML = donut(d.models.map(m => ({ label: m.name, value: m.units }))) +
+        d.models.map(m => `<p class="muted">${m.name}: ${fmt(m.input_tokens)} input, ${fmt(m.output_tokens)} output, ${fmt(m.cache_read_tokens)} cache-read tokens.</p>`).join('');
+
+      const max = Math.max(...d.prompts.map(p => p.units));
+      el('prompts').innerHTML = d.prompts.map(p =>
+        `<div class="row"><div class="top"><span>${p.label}</span><small>${fmt(p.units)} units · ${p.calls} calls</small></div>${bar(p.units / max * 100)}</div>`).join('');
+
+      el('note').textContent = d.note;
+    }).catch(() => { el('note').textContent = 'Could not load budget-data.json.'; });
+  </script>
+</body>
+</html>

@@ -1,22 +1,27 @@
 {
   "unit": "AI Credits",
   "budget_total": 950,
-  "note": "Measured from the Copilot session usage log (AI units). Phases with actual null are not recorded yet: enter trainer readings.",
+  "note": "Measured from Copilot session usage logs (AI units) for two members: Nadia (Claude Sonnet 5.5) and Hamad (Claude Opus 5.5). Phases with actual null are not recorded yet; other members' usage still needs trainer readings.",
   "phases": [
-    { "name": "Plan", "model_tier": "Frontier", "budget": 150, "actual": null },
-    { "name": "Scaffold", "model_tier": "Low-cost", "budget": 80, "actual": null },
-    { "name": "Build features", "model_tier": "Mixed", "budget": 500, "actual": null },
+    { "name": "Plan", "model_tier": "Frontier", "budget": 150, "actual": 453.4 },
+    { "name": "Scaffold", "model_tier": "Low-cost", "budget": 80, "actual": 106.39 },
+    { "name": "Build features", "model_tier": "Mixed", "budget": 500, "actual": 283.54 },
     { "name": "Tests + review", "model_tier": "Low-cost", "budget": 170, "actual": 6.8 },
-    { "name": "Docs + demo", "model_tier": "Low-cost", "budget": 50, "actual": 78.03 }
+    { "name": "Docs + demo", "model_tier": "Low-cost", "budget": 50, "actual": 154.53 }
   ],
   "models": [
-    { "name": "Claude Sonnet 5.5", "calls": 19, "units": 84.83, "input_tokens": 1611520, "output_tokens": 5622, "cache_read_tokens": 1348641, "cache_write_tokens": 262831 }
+    { "name": "Claude Sonnet 5.5", "calls": 19, "units": 84.83, "input_tokens": 1611520, "output_tokens": 5622, "cache_read_tokens": 1348641, "cache_write_tokens": 262831 },
+    { "name": "Claude Opus 5.5", "calls": 121, "units": 919.83, "input_tokens": 10739457, "output_tokens": 115792, "cache_read_tokens": 9740731, "cache_write_tokens": 939418 }
   ],
   "prompts": [
     { "label": "Project brief and status", "calls": 3, "units": 22.94 },
     { "label": "Fix && in Run script", "calls": 4, "units": 24.01 },
     { "label": "Use full dotnet path", "calls": 3, "units": 3.66 },
     { "label": "Fix NuGet restore", "calls": 5, "units": 6.8 },
-    { "label": "Credit usage report", "calls": 4, "units": 27.42 }
+    { "label": "Credit usage report", "calls": 4, "units": 27.42 },
+    { "label": "Hackathon gap review (Hamad)", "calls": 56, "units": 453.4 },
+    { "label": "Pull latest and review missing (Hamad)", "calls": 30, "units": 283.54 },
+    { "label": "macOS/Windows run check (Hamad)", "calls": 20, "units": 106.39 },
+    { "label": "Add usage to budget PR (Hamad)", "calls": 15, "units": 76.5 }
   ]
 }
